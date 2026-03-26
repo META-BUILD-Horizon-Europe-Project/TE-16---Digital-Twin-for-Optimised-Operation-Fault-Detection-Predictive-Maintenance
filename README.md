@@ -154,3 +154,274 @@ For each exposed endpoint:
     "path": "/api/v1/sensors/ieq-co2-99/latest"
   }
 }
+
+#### **UI Mockups (if applicable)**
+
+- **Digital Twin building view:** IFC-based georeferenced 3D building representation with integrated system layers
+- **Operational dashboard:** Real-time monitoring, alarms, KPIs and equipment status
+- **Analytics interface:** Fault alerts, predictive maintenance outputs, operational recommendations and energy planning indicators
+
+![Model](UI1.png)
+
+![Model](UI2.png)
+
+## **Data Model**
+
+- **Key entities:**
+  - **Building**
+  - **EnergyAsset** (HP, battery, PV, storage)
+  - **Sensor / Measurement**
+  - **DigitalTwinModel**
+  - **FaultEvent**
+  - **HealthIndicator**
+  - **MaintenanceRecommendation**
+  - **OperationalRecommendation**
+  - **EnergyUseReport**
+
+- **Relationships:**
+  - **Buildings** contain **assets**
+  - **Assets** generate **measurements**
+  - The **Digital Twin** models assets and systems
+  - Analytics modules produce **health**, **operational**, **planning**, **fault** and **prognosis** outputs linked to assets and zones
+
+- **Database schema (logical):**
+  - buildings: {building_id, pilot_id, geometry_ref, use_type, metadata}
+  - assets: {asset_id, building_id, asset_type, location, status, metadata}
+  - sensors: {sensor_id, building_id, zone_id, type, unit, location}
+  - measurements: {sensor_id, asset_id, ts, value, unit, quality_flag}
+  - dt_models: {model_id, building_id, model_type, calibration_version, status}
+  - fault_events: {event_id, asset_id, zone_id, fault_type, severity, ts, diagnosis}
+  - health_indicators: {indicator_id, asset_id, ts, indicator_type, value, trend}
+  - maintenance_recommendations: {recommendation_id, asset_id, priority, severity, action, created_at}
+  - operational_recommendations: {recommendation_id, building_id, zone_id, target_variable, suggested_value, rationale, created_at}
+  - energy_use_reports: {report_id, building_id, period_start, period_end, kpis, generated_at}
+
+![Model](schema.png)
+
+## **Data Requirements**
+
+Below are the **minimal data requirements** for the META-BUILD Building Digital Twin (**TE-16**), grouped by service area.
+
+| Service Area | Req | Data Category | Data Description | Unit | Spatial Scope | Time Horizon | Best-Case Granularity | Worst-Case Granularity |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| All | - | General Building Information | Building use, HVAC/AHU systems and compatibility metadata | m², m | Building | Static | - | - |
+| Energy Use Planning | R1 | Local Energy Production | PV, PVT thermal/electrical, ST, DSHP, biomass boiler output | W / kWh | System | Historical + operational (min. 6 weeks for forecasting models) | 15 min | 1 h |
+| Energy Use Planning | R2 | Thermal Demand / Consumption | Heating and cooling demand / consumption | W / kWh | Equipment | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Energy Use Planning | R3 | Electricity Demand / Consumption | Electricity demand / consumption | W / kWh | Equipment | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Energy Use Planning | R4 | Zone Temperature Setpoint | Zone / thermostat setpoints | °C | Thermostat / controlled zone | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Energy Use Planning | R5 | Indoor Temperature | Indoor air temperature | °C | Zone / microzone | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Energy Use Planning | R6 | Weather Data | Ambient temperature and solar radiation | °C, W/m² | Location | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Energy Use Planning | R7 | Weather Forecast | Forecast ambient temperature and solar radiation | °C, W/m² | Location | Forecast 1-7 days ahead | 15 min | 1 h |
+| Energy Use Planning | R8 | Electricity Price Forecast | Forecast electricity price | €/MWh | Building | Forecast 1-7 days ahead | 15 min | 1 h |
+| Optimised Operation | R9 | Electricity Demand / Consumption | Equipment/floor/microzone electricity use | W / kWh | Equipment / floor / microzone | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Optimised Operation | R10 | Thermal Demand / Consumption | Thermal demand at equipment or microzone level | W / kWh | Equipment / microzone | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Optimised Operation | R11 | Weather Data | Ambient temperature, RH, pressure, wind, solar radiation, PM2.5 | °C, %, Pa, km/h, W/m², ppm | Location | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Optimised Operation | R12 | Control Signals | VAV opening, zone setpoint temperature | 0-10V, °C | Control equipment | Historical + operational, must be overwritable | 15 min | 1 h |
+| Optimised Operation | R13 | Supply Conditions | Supply energy / temperature / flow | kWh or °C; m³/h | Supply distribution system | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Optimised Operation | R14 | Return Conditions | Return energy / temperature / flow | kWh or °C; m³/h | Return distribution system | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Optimised Operation | R15 | Zone Setpoint Temperature | Controlled-zone setpoint | °C | Thermostat / controlled zone | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Optimised Operation | R16 | Indoor Temperature | Indoor air temperature | °C | Zone / microzone | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Optimised Operation | R17 | IEQ | CO2, PM2.5, VOCs, temperature, humidity, noise | ppm, °C, %, dB | Zone / microzone | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Optimised Operation | R18 | Presence / Movement | Occupancy-related signal | integer | Zone / microzone | Historical + operational (min. 6 weeks) | 15 min | 1 h |
+| Optimised Operation | R19 | Weather Forecast | Forecast ambient temperature and solar radiation | °C, W/m² | Location | Forecast 1-7 days ahead | 15 min | 1 h |
+| Predictive Maintenance | R20 | Electricity Demand / Consumption | Equipment electricity use | W / kWh | Equipment | Historical failure data + operational | 15 min | 1 h |
+| Predictive Maintenance | R21 | Thermal Demand / Consumption | Equipment thermal demand | W / kWh | Equipment | Historical failure data + operational | 15 min | 1 h |
+| Predictive Maintenance | R22 | Supply Conditions | Fan velocity, supply temperature, airflow, differential pressure | %, °C, m³/h, Pa | Supply distribution system | Historical failure data + operational | 15 min | 1 h |
+| Predictive Maintenance | R23 | Return Conditions | Return-side operational variables | %, °C, m³/h, Pa | Distribution system | Historical failure data + operational | 15 min | 1 h |
+| Predictive Maintenance | R24 | Setpoint Temperature | Terminal unit setpoint temperature | °C | Terminal unit | Historical failure data + operational | 15 min | 1 h |
+
+## **Integration and Dependencies**
+
+- **Internal dependencies:** Possible **TE-10 interoperability framework** for data access; **WP5 monitoring infrastructure**; WP4 optimisation and control services; **WP3**, **DSHP** and **PVT** energy data for the energy use planning module
+- **External dependencies:** Physical simulation tools such as **Modelica**, ML frameworks for diagnosis and prognosis, and external APIs for weather and electricity price forecasts
+- **Edge devices / interfaces and cloud integration:** Hybrid cloud-edge deployment with monitoring, analytics and control integration
+- **Data space integration:** TE-16 acts as both **consumer** and **producer** of data and can exchange outputs with other WP4 services
+
+**Integration role:**
+
+- Provides **operational**, **health** and **fault indicators** to other WP4 services
+- Can feed **optimisation**, **maintenance** and **flexibility planning** services
+- Consumes real-time and historical data from BMS, IoT sensors and other pilot systems
+
+## **Security and Privacy**
+
+- **Data Sensitivity:** TE-16 processes operational and technical building data and does not require personal data.
+- **Access Control:** Role-based access to monitoring and control capabilities.
+- **Encryption:** Secure communication through authenticated APIs and TLS-protected channels.
+- **Privacy:** GDPR-compliant handling of building operational data.
+- **Governance:** Separation of monitoring, analytics and control interfaces to support secure deployment.
+
+## **Current Status**
+
+This section summarises the current maturity of TE-16 for **FR6**.
+
+**Current status:**
+
+- Digital Twin framework defined
+- Hybrid modelling approach selected
+- Initial fault diagnosis and prognosis concepts validated offline
+- Early experimentation performed using pilot-like datasets and simulated scenarios
+- Progressive calibration planned during **D4.2** with pilot data
+
+**Main limitations:**
+
+- Availability and completeness of pilot data
+- Progressive deployment of monitoring infrastructure
+
+### **DT Architecture Status**
+
+#### **Monitoring system**
+
+The DT architecture was already conceptualised and nearly deployed in **FR6** in previous work (**D4.1**). The current status has progressed to a **full monitoring system deployment**. Indoor environmental sensors, previously lacking in the office area, are now fully installed in FR6.
+
+#### **BMS integration**
+
+Significant progress has been achieved in establishing **bidirectional communication** between the DT platform and the FR6 BMS, enabling both **real-time monitoring** and **control capabilities**.
+
+- Integration with the BMS has been implemented using the **MODBUS-IP gateway** provided by the **Tridium platform**
+- The gateway translates **MODBUS RTU** frames from field devices into **TCP/IP** packets consumable by the DT communication layer
+- The gateway preserves original MODBUS register mappings while providing network accessibility
+
+The connection between the MODBUS-IP gateway and the DT communication layer was established through **Node-RED**, which acts as the main data orchestration platform.
+
+**Node-RED functions include:**
+
+- **Data polling** for monitored variables such as HVAC operation, indoor environmental parameters and equipment status registers
+- **Event-driven updates** for real-time state changes reported by the BMS
+- **Protocol translation** into standardised formats for downstream processing and storage
+- **Connection management**, including reconnection handling and error logging
+
+**Storage layer:**
+
+- Monitoring data persists in **InfluxDB** as the main time-series database
+- This supports high-performance writes, efficient time-based queries, retention policies, down-sampling and dashboard / analytics integration
+
+**Control API:**
+
+- A dedicated **Control API** has been developed to issue setpoint commands to the BMS
+- The API abstracts MODBUS register writing behind a secure RESTful interface
+- It is designed to support **AI-driven optimisation algorithms**
+- The DT can use centralised information from BMS data, IoT sensors, weather forecasts, occupancy predictions and energy price signals to compute optimal setpoints and transmit them to the BMS
+
+**Controllable variables currently include:**
+
+- Zone setpoint temperatures
+- **Variable Air Volume (VAV)** damper positions (0-10 V control signal)
+
+The controllable areas are organised into:
+
+- **Three virtual zones** (zones 7, 8 and 9) covering the open-office area
+- **One meeting room** (zone 4)
+
+#### **Common Data Environment (CDE)**
+
+The **Common Data Environment** for FR6 is in an advanced development phase, with a **basic but functional integration already operational**.
+
+Current integration includes key environmental and operational parameters sourced from the BMS through the MODBUS-IP gateway. This has enabled preliminary validation of data flows across the architecture.
+
+**Full commissioning of the CDE is scheduled for February 2026**, including:
+
+- Complete integration of all identified BMS data points
+- Full deployment of the IoT sensor network with unified ingestion pipelines
+- Validation of bidirectional monitoring and control data flows
+- Performance testing under realistic operational loads
+
+#### **DT interface status**
+
+A comprehensive DT solution has been developed to provide an integrated, data-driven representation of the building.
+
+- Multiple **IFC models** have been fully georeferenced and combined into a unified visualisation environment
+- The DT includes a visualisation dashboard and multiple connectors for advanced operational modules
+- It supports both **historical data ingestion** and **real-time sensor monitoring**
+- A dedicated **alarm generation service** evaluates sensor readings against predefined operating thresholds and triggers alerts when deviations occur
+
+Overall, the DT already provides a **centralised and scalable platform** supporting operational awareness, data-driven insights and improved efficiency, reliability and sustainability.
+
+#### **Data ingestion status**
+
+Operational data for advanced module development are being collected and will be used for training models in a simulation environment.
+
+For the **energy use planning** module:
+
+- FR6 operational data is being collected and analysed
+- There is still a lack of **DSHP (TE-6)** and **PVT (TE-7)** operational data because those systems have not yet been commissioned in FR6
+- Current data sources include:
+  - air heater operation in laboratory space
+  - power and accumulated energy supply
+  - ambient temperature
+  - PV generation from the current PV system
+  - meteorological data from open databases or the installed weather station
+
+It has also been observed that some key building operation parameters are not available in the current BMS. Therefore, **on-site measurements** are required to adapt modules to available data.
+
+For example:
+
+- Air velocity measurements will be taken in fan coil and VAV ducts
+- This is needed to define the relationship between fan speed and airflow rate supplied to each virtual zone
+- This is essential because only total zone energy is currently available in FR6, not energy per unit or per virtual zone
+
+### **Pilot constraints due to commissioning delays**
+
+The DT architecture and interface are already **pilot-ready**, but the advanced module development is facing delays due to pilot constraints.
+
+#### **Energy Use Planning Module**
+
+- Lack of operational data because **DSHP (TE-6)** and **PVT (TE-7)** have not yet been installed in FR6
+- Causes include technical and administrative delays, repairs on the building site and building opening delays
+
+#### **Optimised Operation Module**
+
+- Lack of **IEQ** and **occupancy sensor data** due to delayed installation
+- Causes include technical and administrative delays, need for new electrical points and digital infrastructure connection issues
+- Enough IEQ data is expected to be collected during the **first term of 2026** to start model development and calibration
+
+There is also a lack of **fan coil electric consumption data** because the relevant energy analysers were not properly commissioned. This is expected to be resolved by specialised electricians.
+
+#### **Predictive Maintenance Module**
+
+- There is a lack of **labelled fan coil operation data**
+- Development of anomaly detection and fault diagnosis functions requires a dedicated experimental campaign to generate a labelled dataset
+- Faults to be emulated include:
+  - heating and cooling coil valve malfunctions
+  - stuck positions at different openings
+  - possible loss of tightness
+  - filter clogging at multiple severity levels
+
+**Experimental approach:**
+
+- Filter clogging will be emulated through controlled artificial pressure drop at the FCU inlet
+- Valve-related faults will be induced using dummy control signals
+- Tests will be performed outside office hours to avoid occupant disruption
+- Each test will run for several hours under normal and faulty conditions
+- Data will be time-stamped and tagged with ground-truth fault class and severity
+
+**Preliminary feature space includes:**
+
+- Heating and cooling setpoints
+- Zone thermostat temperature
+- Temporal or contextual features
+- Heating and cooling valve control signals
+- Fan coil supply air temperature
+
+This testing campaign, planned for **February**, may generate some delays.
+
+#### **Common Data Environment**
+
+The CDE development has also experienced delays due to:
+
+- **Data heterogeneity** across BMS registers and IoT sensors using different protocols (Zigbee, WiFi, MQTT)
+- **Legacy system integration** limitations, including low data granularity and limited metadata from the BMS
+- **Network and security constraints**, requiring careful balancing between secure data access and real-time performance for control-capable interfaces
+
+## **Next Steps**
+
+Advanced modules are currently under development in a **simulated environment**, while predictive models are being developed and calibrated with operational data from **FR6**.
+
+Once sufficient historical data is analysed, the models will be ready for training and the advanced modules will be tested in simulation.
+
+**Next validation steps:**
+
+1. **Complete commissioning of the CDE in FR6**
+2. **Conduct on-site tests on fan coil units** for the optimised operation and predictive maintenance modules
+3. **Understand and validate current HVAC operation** to adapt the optimised operation modules
+4. **Calibrate predictive models** based on available operational data
