@@ -154,7 +154,6 @@ For each exposed endpoint:
     "path": "/api/v1/sensors/ieq-co2-99/latest"
   }
 }
-``` 
 
 #### **UI Mockups (if applicable)**
 
